@@ -44,5 +44,31 @@ To run the executable output:
 ./output
 ```
 
+## Docker environment
+
+If you don't want to compile with your local environment, there is a Docker option. Use the following command in the project root to start and run the Docker image:
+```
+docker-compose up --build
+```
+
+To stop and remove the environment run:
+```
+docker-compose down
+```
+
+## Known Issues
+
+If you clone the repository on Windows, the line endings will be converted to Windows format, therefore the compiler not run. Expected error message:
+
+```
+'.mpilerEnv     | Line 1: Unexpected character: '
+CompilerEnv     | Makefile:51: recipe for target 'exec_write_natural' failed
+CompilerEnv     | make: *** [exec_write_natural] Error 1
+```
+
+### Solution
+
+Download the repository as a Zip file and unpack it. This keeps the file endings as is, not changing to Windows format.
+
 ## License
 This software is licensed under the MIT license. See the *LICENSE* file for details.

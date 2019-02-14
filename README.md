@@ -46,11 +46,19 @@ To run the executable output:
 
 ## Docker environment
 
-If you don't want to compile with your local environment, there is a Docker option. Use the following command in the project root to start and run the Docker image:
+If you don't want to compile with your local environment, there is a Docker option. Use the following commands in the project root to build and run the Docker image:
+
 ```
-docker-compose up --build
+docker-compose build
+docker-compose run compiler-env
 ```
 
+This will open a bash terminal on the image. All the source files is in the working directory and it can be modify on the host operating system too. The working directory is shared between the host and the container.
+
+To exit the interactive terminal use:
+```
+exit
+```
 To stop and remove the environment run:
 ```
 docker-compose down

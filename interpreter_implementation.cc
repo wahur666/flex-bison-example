@@ -55,6 +55,14 @@ unsigned not_expression::get_value() const {
     return !(bool)(operand->get_value());
 }
 
+unsigned ternary_expression::get_value() const {
+    if (condition->get_value()) {
+        return true_expression->get_value();
+    } else {
+        return false_expression->get_value();
+    }
+}
+
 void assign_instruction::execute() {
     value_table[left] = right->get_value();
 }
@@ -99,6 +107,12 @@ void if_instruction::execute() {
 void while_instruction::execute() {
     std::list<instruction*>::iterator it;
     while(condition->get_value()) {
+        execute_commands(body);
+    }
+}
+
+void repeat_instruction::execute() {
+    for(unsigned i = condition->get_value(); i > 0; --i) {
         execute_commands(body);
     }
 }

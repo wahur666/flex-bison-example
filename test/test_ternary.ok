@@ -1,0 +1,4 @@
+program test_ternary
+begin
+    write((true ? 1 : 0))
+end

@@ -157,6 +157,20 @@ class if_instruction : public instruction {
     std::list<instruction*>* false_branch;
 };
 
+class ternary_expression : public expression {
+  public:
+    ternary_expression(int _line, expression* _condition, expression* _true_expression, expression* _false_expression);
+    ~ternary_expression();
+    type get_type() const;
+    std::string get_code() const;
+    unsigned get_value() const;
+  private:
+    int line;
+    expression* condition;
+    expression* true_expression;
+    expression* false_expression;
+};
+
 class while_instruction : public instruction {
   public:
     while_instruction(int _line, expression* _condition, std::list<instruction*>* _body);
@@ -168,6 +182,19 @@ class while_instruction : public instruction {
     expression* condition;
     std::list<instruction*>* body;
 };
+
+class repeat_instruction : public instruction {
+  public:
+    repeat_instruction(int _line, expression* _condition, std::list<instruction*>* _body);
+    ~repeat_instruction();
+    void type_check();
+    std::string get_code();
+    void execute();
+  private:
+    expression* condition;
+    std::list<instruction*>* body;
+};
+
 
 void type_check_commands(std::list<instruction*>* commands);
 

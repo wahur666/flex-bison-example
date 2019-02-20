@@ -88,12 +88,31 @@ if_instruction::~if_instruction() {
     delete_commands(true_branch);
     delete_commands(false_branch);
 }
+
+ternary_expression::ternary_expression(int _line, expression* _condition, expression* _true_expression, expression* _false_expression) :
+    line(_line), condition(_condition), true_expression(_true_expression), false_expression(_false_expression) 
+{}
+
+ternary_expression::~ternary_expression() {
+    delete condition;
+    delete true_expression;
+    delete false_expression;
+}
     
 while_instruction::while_instruction(int _line, expression* _condition, std::list<instruction*>* _body)
     : instruction(_line), condition(_condition), body(_body)
 {}
 
 while_instruction::~while_instruction() {
+    delete condition;
+    delete_commands(body);
+}
+
+repeat_instruction::repeat_instruction(int _line, expression* _condition, std::list<instruction*>* _body)
+    : instruction(_line), condition(_condition), body(_body)
+{}
+
+repeat_instruction::~repeat_instruction() {
     delete condition;
     delete_commands(body);
 }

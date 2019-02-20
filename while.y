@@ -30,6 +30,9 @@ int yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yylloc);
 %token ASN
 %token OP
 %token CL
+%token QM
+%token COL
+%token REP
 %token <std::string> ID
 %token <std::string> NUM
 
@@ -120,6 +123,11 @@ command:
     WHI expression DO commands DON
     {
         $$ = new while_instruction(@1.begin.line, $2, $4);
+    }
+|
+    REP expression DO commands DON
+    {
+        $$ = new repeat_instruction(@1.begin.line, $2, $4);
     }
 ;
 
@@ -213,6 +221,10 @@ expression:
     {
         $$ = $2;
     }
+|
+    OP expression QM expression COL expression CL
+    {
+        $$ = new ternary_expression(@1.begin.line, $2, $4, $6);
+    }
 ;
-
 %%

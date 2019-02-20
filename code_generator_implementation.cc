@@ -178,6 +178,21 @@ std::string if_instruction::get_code() {
     return ss.str();
 }
 
+std::string ternary_expression::get_code() const {
+    std::string else_label = next_label();
+    std::string end_label = next_label();
+    std::stringstream ss;
+    ss << condition->get_code();
+    ss << "cmp al,1" << std::endl;
+    ss << "jne near " << else_label << std::endl;
+    ss << true_expression->get_code();
+    ss << "jmp " << end_label << std::endl;
+    ss << else_label << ":" << std::endl;
+    ss << false_expression->get_code();
+    ss << end_label << ":" << std::endl;
+    return ss.str();
+}
+
 std::string while_instruction::get_code() {
     std::string begin_label = next_label();
     std::string end_label = next_label();
@@ -189,6 +204,20 @@ std::string while_instruction::get_code() {
     generate_code_of_commands(ss, body);
     ss << "jmp " << begin_label << std::endl;
     ss << end_label << ":" << std::endl;
+    return ss.str();
+}
+
+std::string repeat_instruction::get_code() {
+    std::string begin_label = next_label();
+    std::stringstream ss;
+    ss << condition->get_code();
+    ss << "mov ecx, eax" << std::endl;
+    ss << begin_label << ":" << std::endl;
+    ss << "push ecx" << std::endl;
+    generate_code_of_commands(ss, body);
+    ss << "pop ecx" << std::endl;
+    ss << "loop " << begin_label << std::endl;
+
     return ss.str();
 }
 

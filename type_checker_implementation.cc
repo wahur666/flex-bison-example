@@ -66,6 +66,17 @@ type not_expression::get_type() const {
     return boolean;
 }
 
+type ternary_expression::get_type() const {
+    if (condition->get_type() != boolean) {
+        error(line, "Condition of 'ternary' instruction is not boolean.");
+    }
+    if (true_expression->get_type() != false_expression->get_type()){
+        error(line, "The sides of '?:' are not the same.");
+    }   
+
+    return true_expression->get_type();
+}
+
 void assign_instruction::type_check() {
     if(symbol_table.count(left) == 0) {
         error(line, std::string("Undefined variable: ") + left);
@@ -96,6 +107,13 @@ void if_instruction::type_check() {
 void while_instruction::type_check() {
     if(condition->get_type() != boolean) {
         error(line, "Condition of 'while' instruction is not boolean.");
+    }
+    type_check_commands(body);
+}
+
+void repeat_instruction::type_check() {
+    if(condition->get_type() != natural) {
+        error(line, "Condition of 'repeat' instruction is not  natural.");
     }
     type_check_commands(body);
 }

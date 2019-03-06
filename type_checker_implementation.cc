@@ -1,8 +1,22 @@
 #include "implementation.hh"
-#include <iostream>
-#include <sstream>
+
+// Symbol Table
 
 std::map<std::string, symbol> symbol_table;
+
+// Local Helper Declarations
+
+type operand_type(std::string op);
+type return_type(std::string op);
+
+// Type Checks for Expressions
+
+void symbol::declare() {
+    if(symbol_table.count(name) > 0) {
+        error(line, std::string("Re-declared variable: ") + name);
+    }
+    symbol_table[name] = *this;
+}
 
 type number_expression::get_type() const {
     return natural;
@@ -12,35 +26,11 @@ type boolean_expression::get_type() const {
     return boolean;
 }
 
-void symbol::declare() {
-    if(symbol_table.count(name) > 0) {
-        error(line, std::string("Re-declared variable: ") + name);
-    }
-    symbol_table[name] = *this;
-}
-
 type id_expression::get_type() const {
     if(symbol_table.count(name) == 0) {
         error(line, std::string("Undefined variable: ") + name);
     }
     return symbol_table[name].symbol_type;
-}
-
-type operand_type(std::string op) {
-    if(op == "+" || op == "-" || op == "*" || op == "/" || op == "%" ||
-       op == "<" || op == ">" || op == "<=" || op == ">=") {
-           return natural;
-    } else {
-        return boolean;
-    }
-}
-
-type return_type(std::string op) {
-    if(op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
-           return natural;
-    } else {
-        return boolean;
-    }
 }
 
 type binop_expression::get_type() const {
@@ -68,14 +58,17 @@ type not_expression::get_type() const {
 
 type ternary_expression::get_type() const {
     if (condition->get_type() != boolean) {
-        error(line, "Condition of 'ternary' instruction is not boolean.");
+        error(line, "Condition of '?:' expression is not boolean.");
     }
-    if (true_expression->get_type() != false_expression->get_type()){
-        error(line, "The sides of '?:' are not the same.");
-    }   
+
+    if (true_expression->get_type() != false_expression->get_type()) {
+        error(line, "The sides of '?:' expression are not of the same type.");
+    }
 
     return true_expression->get_type();
 }
+
+// Type Checks for Instructions
 
 void assign_instruction::type_check() {
     if(symbol_table.count(left) == 0) {
@@ -112,10 +105,30 @@ void while_instruction::type_check() {
 }
 
 void repeat_instruction::type_check() {
-    if(condition->get_type() != natural) {
-        error(line, "Condition of 'repeat' instruction is not  natural.");
+    if (count->get_type() != natural) {
+        error(line, "Count of 'repeat' instruction is not natural.");
     }
+
     type_check_commands(body);
+}
+
+// Helpers
+
+type operand_type(std::string op) {
+    if(op == "+" || op == "-" || op == "*" || op == "/" || op == "%" ||
+            op == "<" || op == ">" || op == "<=" || op == ">=") {
+        return natural;
+    } else {
+        return boolean;
+    }
+}
+
+type return_type(std::string op) {
+    if(op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
+        return natural;
+    } else {
+        return boolean;
+    }
 }
 
 void type_check_commands(std::list<instruction*>* commands) {

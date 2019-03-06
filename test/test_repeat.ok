@@ -1,6 +1,16 @@
-program test_ternary
+program test_repeate
+    natural n
+    natural i
+    boolean b
 begin
-    repeat 4 do
-        write((true ? 1 : 0))
+    n := 5
+    i := n
+    repeat n do
+        if i > 1 then
+            write(n)
+        else
+            write(i)
+        endif
+        i := i - 1
     done
 end

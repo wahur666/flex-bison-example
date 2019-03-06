@@ -3,7 +3,6 @@
 %{
 #include <iostream>
 #include <cstdlib>
-#include <list>
 #include "implementation.hh"
 #include "while.tab.hh"
 
@@ -24,11 +23,11 @@ then                        return parser::token::THE;
 else                        return parser::token::ELS;
 endif                       return parser::token::EIF;
 while                       return parser::token::WHI;
+repeat                      return parser::token::REP;
 do                          return parser::token::DO;
 done                        return parser::token::DON;
 true                        return parser::token::TRU;
 false                       return parser::token::FAL;
-repeat                      return parser::token::REP;
 ":="                        return parser::token::ASN;
 "+"                         return parser::token::ADD;
 "-"                         return parser::token::SUB;
@@ -40,9 +39,9 @@ repeat                      return parser::token::REP;
 "<="                        return parser::token::LSE;
 ">="                        return parser::token::GRE;
 "="                         return parser::token::EQ;
-and                         return parser::token::AND;
 "?"                         return parser::token::QM;
 ":"                         return parser::token::COL;
+and                         return parser::token::AND;
 or                          return parser::token::OR;
 not                         return parser::token::NOT;
 "("                         return parser::token::OP;
@@ -50,5 +49,5 @@ not                         return parser::token::NOT;
 [a-zA-Z_][a-zA-Z0-9_]*      return parser::token::ID;
 [0-9]+                      return parser::token::NUM;
 [ \t\n]+                    // Whitespaces skipped.
-#.*                         // Commens skipped.
+#.*                         // Comments skipped.
 .                           { std::cerr << "Line " << lineno() << ": Unexpected character: '" << YYText() << "'." << std::endl; exit(1); }

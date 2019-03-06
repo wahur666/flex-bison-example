@@ -2,7 +2,11 @@
 #include <iostream>
 #include <sstream>
 
+// Value Table
+
 std::map<std::string, unsigned> value_table;
+
+// Interpreting Expressions
 
 unsigned number_expression::get_value() const {
     return value;
@@ -63,6 +67,8 @@ unsigned ternary_expression::get_value() const {
     }
 }
 
+// Interpreting Instructions
+
 void assign_instruction::execute() {
     value_table[left] = right->get_value();
 }
@@ -112,10 +118,12 @@ void while_instruction::execute() {
 }
 
 void repeat_instruction::execute() {
-    for(unsigned i = condition->get_value(); i > 0; --i) {
+    for (unsigned i = count->get_value(); i > 0; --i) {
         execute_commands(body);
     }
 }
+
+// Helper
 
 void execute_commands(std::list<instruction*>* commands) {
     if(!commands) {

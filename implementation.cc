@@ -2,12 +2,16 @@
 #include <iostream>
 #include <sstream>
 
-mode current_mode;
+// Common Elements
 
-void error(int line, std::string text) {
-    std::cerr << "Line " << line << ": Error: " << text << std::endl;
-    exit(1);
+mode current_mode;
+long id = 0;
+
+symbol::symbol(int _line, std::string _name, type _type) : line(_line), name(_name), symbol_type(_type) {
+    label = next_label();
 }
+
+// Expressions
 
 expression::~expression() {
 }
@@ -19,12 +23,6 @@ number_expression::number_expression(std::string text) {
 
 boolean_expression::boolean_expression(bool _value) {
     value = _value;
-}
-
-long id = 0;
-
-symbol::symbol(int _line, std::string _name, type _type) : line(_line), name(_name), symbol_type(_type) {
-    label = next_label();
 }
 
 id_expression::id_expression(int _line, std::string _name)
@@ -47,6 +45,18 @@ not_expression::~not_expression() {
 not_expression::not_expression(int _line, std::string _op, expression* _operand)
     : line(_line), op(_op), operand(_operand)
 {}
+
+ternary_expression::~ternary_expression() {
+    delete condition;
+    delete true_expression;
+    delete false_expression;
+}
+
+ternary_expression::ternary_expression(int _line, expression* _condition, expression* _true_expression, expression* _false_expression)
+    : line(_line), condition(_condition), true_expression(_true_expression), false_expression(_false_expression)
+{}
+
+// Instructions
 
 instruction::instruction(int _line)
     : line(_line)
@@ -88,16 +98,6 @@ if_instruction::~if_instruction() {
     delete_commands(true_branch);
     delete_commands(false_branch);
 }
-
-ternary_expression::ternary_expression(int _line, expression* _condition, expression* _true_expression, expression* _false_expression) :
-    line(_line), condition(_condition), true_expression(_true_expression), false_expression(_false_expression) 
-{}
-
-ternary_expression::~ternary_expression() {
-    delete condition;
-    delete true_expression;
-    delete false_expression;
-}
     
 while_instruction::while_instruction(int _line, expression* _condition, std::list<instruction*>* _body)
     : instruction(_line), condition(_condition), body(_body)
@@ -108,13 +108,20 @@ while_instruction::~while_instruction() {
     delete_commands(body);
 }
 
-repeat_instruction::repeat_instruction(int _line, expression* _condition, std::list<instruction*>* _body)
-    : instruction(_line), condition(_condition), body(_body)
+repeat_instruction::repeat_instruction(int _line, expression* _count, std::list<instruction*>* _body)
+    : instruction(_line), count(_count), body(_body)
 {}
 
 repeat_instruction::~repeat_instruction() {
-    delete condition;
+    delete count;
     delete_commands(body);
+}
+
+// Semantic API
+
+void error(int line, std::string text) {
+    std::cerr << "Line " << line << ": Error: " << text << std::endl;
+    exit(1);
 }
 
 void delete_commands(std::list<instruction*>* commands) {

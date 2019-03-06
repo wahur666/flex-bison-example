@@ -5,46 +5,12 @@
 #include <list>
 #include <map>
 
-enum mode {compiler, interpreter};
+// Common Elements
 
+enum mode {compiler, interpreter};
 extern mode current_mode;
 
 enum type {boolean, natural};
-
-void error(int line, std::string text);
-
-class expression {
-  public:
-    virtual type get_type() const = 0;
-    virtual ~expression();
-    virtual std::string get_code() const = 0;
-    virtual unsigned get_value() const = 0;
-};
-
-class number_expression : public expression {
-  public:
-    number_expression(std::string text);  
-    type get_type() const;
-    std::string get_code() const;
-    unsigned get_value() const;    
-  private:
-    unsigned value;
-};
-
-class boolean_expression : public expression {
-  public:
-    boolean_expression(bool _value);  
-    type get_type() const;
-    std::string get_code() const;
-    unsigned get_value() const;    
-  private:
-    bool value;
-};
-
-extern long id;
-
-extern std::string next_label();
-
 struct symbol {
     symbol() {}
     symbol(int _line, std::string _name, type _type);
@@ -57,15 +23,52 @@ struct symbol {
     std::string label;
 };
 
+extern long id;
+extern std::string next_label();
+
 extern std::map<std::string, symbol> symbol_table;
 extern std::map<std::string, unsigned> value_table;
+
+// AST Metamodel of Expressions
+
+class expression {
+  public:
+    virtual type get_type() const = 0;
+    virtual ~expression();
+    virtual std::string get_code() const = 0;
+    virtual unsigned get_value() const = 0;
+    virtual void print() const = 0;
+};
+
+class number_expression : public expression {
+  public:
+    number_expression(std::string text);  
+    type get_type() const;
+    std::string get_code() const;
+    unsigned get_value() const;  
+    void print() const;
+  private:
+    unsigned value;
+};
+
+class boolean_expression : public expression {
+  public:
+    boolean_expression(bool _value);  
+    type get_type() const;
+    std::string get_code() const;
+    unsigned get_value() const;
+    void print() const;
+  private:
+    bool value;
+};
 
 class id_expression : public expression {
   public:
     id_expression(int line, std::string _name);  
     type get_type() const;
     std::string get_code() const;
-    unsigned get_value() const;    
+    unsigned get_value() const;
+    void print() const;
   private:
     int line;
     std::string name;
@@ -77,7 +80,8 @@ class binop_expression : public expression {
     ~binop_expression();
     type get_type() const;
     std::string get_code() const;
-    unsigned get_value() const;    
+    unsigned get_value() const;
+    void print() const;
   private:
     int line;
     std::string op;
@@ -91,12 +95,31 @@ class not_expression : public expression {
     ~not_expression();
     type get_type() const;
     std::string get_code() const;
-    unsigned get_value() const;    
+    unsigned get_value() const;
+    void print() const;
   private:
     int line;
     std::string op;
     expression* operand;
 };
+
+class ternary_expression : public expression {
+  public:
+    ternary_expression(int _line, expression* _condition,
+        expression* _true_expression, expression* _false_expression);
+    ~ternary_expression();
+    type get_type() const;
+    std::string get_code() const;
+    unsigned get_value() const;
+    void print() const;
+  private:
+    int line;
+    expression* condition;
+    expression* true_expression;
+    expression* false_expression;
+};
+
+// AST Metamodel of Instructions
 
 class instruction {
   public:
@@ -106,6 +129,7 @@ class instruction {
     virtual std::string get_code() = 0;
     virtual void execute() = 0;
     int get_line();
+    virtual void print(int indent_level) const = 0;
   protected:
     int line;
 };
@@ -117,6 +141,7 @@ class assign_instruction : public instruction {
     void type_check();
     std::string get_code();
     void execute();
+    void print(int indent_level) const;
   private:
     std::string left;
     expression* right;
@@ -128,6 +153,7 @@ class read_instruction : public instruction {
     void type_check();
     std::string get_code();
     void execute();
+    void print(int indent_level) const;
   private:
     std::string id;
 };
@@ -139,6 +165,7 @@ class write_instruction : public instruction {
     void type_check();
     std::string get_code();
     void execute();
+    void print(int indent_level) const;
   private:
     expression* exp;
     type exp_type;
@@ -151,24 +178,11 @@ class if_instruction : public instruction {
     void type_check();
     std::string get_code();
     void execute();
+    void print(int indent_level) const;
   private:
     expression* condition;
     std::list<instruction*>* true_branch;
     std::list<instruction*>* false_branch;
-};
-
-class ternary_expression : public expression {
-  public:
-    ternary_expression(int _line, expression* _condition, expression* _true_expression, expression* _false_expression);
-    ~ternary_expression();
-    type get_type() const;
-    std::string get_code() const;
-    unsigned get_value() const;
-  private:
-    int line;
-    expression* condition;
-    expression* true_expression;
-    expression* false_expression;
 };
 
 class while_instruction : public instruction {
@@ -178,6 +192,7 @@ class while_instruction : public instruction {
     void type_check();
     std::string get_code();
     void execute();
+    void print(int indent_level) const;
   private:
     expression* condition;
     std::list<instruction*>* body;
@@ -185,25 +200,27 @@ class while_instruction : public instruction {
 
 class repeat_instruction : public instruction {
   public:
-    repeat_instruction(int _line, expression* _condition, std::list<instruction*>* _body);
+    repeat_instruction(int _line, expression* _count, std::list<instruction*>* _body);
     ~repeat_instruction();
     void type_check();
     std::string get_code();
     void execute();
+    void print(int indent_level) const;
   private:
-    expression* condition;
+    expression* count;
     std::list<instruction*>* body;
 };
 
+// Semantic API
 
 void type_check_commands(std::list<instruction*>* commands);
-
-void generate_code_of_commands(std::ostream& out, std::list<instruction*>* commands);
-
 void execute_commands(std::list<instruction*>* commands);
-
-void delete_commands(std::list<instruction*>* commands);
-
 void generate_code(std::list<instruction*>* commands);
+void print_program(std::string name, std::list<instruction*>* commands);
+
+// Common Helpers
+
+void error(int line, std::string text);
+void delete_commands(std::list<instruction*>* commands);
 
 #endif // IMPLEMENTATION_HH

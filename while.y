@@ -23,6 +23,7 @@ int yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yylloc);
 %token ELS
 %token EIF
 %token WHI
+%token REP
 %token DO
 %token DON
 %token TRU
@@ -32,7 +33,6 @@ int yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yylloc);
 %token CL
 %token QM
 %token COL
-%token REP
 %token <std::string> ID
 %token <std::string> NUM
 
@@ -54,6 +54,8 @@ start:
     PRG ID declarations BEG commands END
     {
         type_check_commands($5);
+        print_program($2, $5);
+
         if(current_mode == compiler) {
             generate_code($5);
         } else {
@@ -227,4 +229,5 @@ expression:
         $$ = new ternary_expression(@1.begin.line, $2, $4, $6);
     }
 ;
+
 %%

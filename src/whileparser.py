@@ -1,6 +1,7 @@
 from sly import Parser
 
 from implementation import *
+from optimizer import Optimizer
 from whilelexel import WhileLexer
 
 
@@ -16,10 +17,10 @@ class WhileParser(Parser):
         ('left', ADD, SUB),
         ('left', MUL, DIV, MOD),
         ('right', BNOT),
-        )
+    )
 
     def __init__(self):
-        self.names = { }
+        self.names = {}
 
     @_('')
     def empty(self, p):
@@ -28,7 +29,14 @@ class WhileParser(Parser):
     @_('PRG ID declarations BEG commands END')
     def sstart(self, p):
         type_check_commands(p.commands)
+
+        commands = p.commands
+
+        Optimizer().optimalize_const_merge(commands)
         print_program(p.ID, p.commands)
+        # print(symbol_table)
+        # print(value_table)
+        # print(commands)
 
     @_('empty')
     def declarations(self, p):

@@ -25,14 +25,14 @@ class Symbol:
         pass
 
     def get_size(self) -> int:
-        if self.symbol_type  == BOOLEAN:
+        if self.symbol_type == BOOLEAN:
             return 1
         else:
             return 4
 
 
 symbol_table: Dict[str, Symbol] = {}
-value_table: List[int] = []
+value_table: Dict[str, int] = {}
 
 
 class Expression:
@@ -64,7 +64,7 @@ class NumberExpression(Expression):
         pass
 
     def get_value(self) -> int:
-        pass
+        return self.value
 
     def print(self):
         print(self.value)
@@ -84,7 +84,7 @@ class BooleanExpression(Expression):
         pass
 
     def get_value(self) -> int:
-        pass
+        return int(self.value)
 
     def print(self):
         print("true" if self.value else "false")
@@ -109,7 +109,9 @@ class IdExpression(Expression):
         pass
 
     def get_value(self) -> int:
-        pass
+        if self.name not in symbol_table:
+            error(self.line, "Variable has not been initialized" + self.name)
+        return value_table[self.name]
 
     def print(self):
         print(self.name)
@@ -141,7 +143,34 @@ class BinopExpression(Expression):
         pass
 
     def get_value(self) -> int:
-        pass
+        left_value: int = self.left.get_value()
+        right_value: int = self.right.get_value()
+        if self.op == "+":
+            return left_value + right_value
+        elif self.op == "-" :
+            return left_value - right_value
+        elif self.op == "*":
+            return left_value * right_value
+        elif self.op == "/":
+            return left_value // right_value
+        elif self.op == "%":
+            return left_value % right_value
+        elif self.op == "<":
+            return left_value < right_value
+        elif self.op == ">":
+            return left_value > right_value
+        elif self.op == "<=":
+            return left_value <= right_value
+        elif self.op == ">=":
+            return left_value <= right_value
+        elif self.op == "and":
+            return left_value and right_value
+        elif self.op == "or":
+            return left_value or right_value
+        elif self.op == "=":
+            return left_value == right_value
+        else:
+            error(self.line, "Unkonwn operator: " + self.op)
 
     def print(self):
         print("(", self.left.to_string(), ") ", self.op, " (", self.right.to_string(), ")")
@@ -165,7 +194,7 @@ class NotExpression(Expression):
         pass
 
     def get_value(self) -> int:
-        pass
+        return int(not self.operand.get_value())
 
     def print(self):
         print(self.op, " (", self.operand.to_string(), ")")
@@ -194,7 +223,10 @@ class TernaryExpression(Expression):
         pass
 
     def get_value(self) -> int:
-        pass
+        if self.condition.get_value():
+            return self.true_expression.get_value()
+        else:
+            return self.false_expression.get_value()
 
     def print(self):
         print("(", self.condition.to_string(), " ? ", self.true_expression.to_string(), " : ",
@@ -243,7 +275,7 @@ class AssignInstruction(Instruction):
         pass
 
     def execute(self):
-        pass
+        value_table[self.left] = self.right.get_value()
 
     def print(self, indent_level: int):
         indent(indent_level)
@@ -264,7 +296,14 @@ class ReadInstruction(Instruction):
         pass
 
     def execute(self):
-        pass
+        input_line = input()
+        if symbol_table[self.id].symbol_type == NATURAL:
+            value_table[self.id] = int(input_line)
+        elif symbol_table[self.id].symbol_type == BOOLEAN:
+            if input_line == "true":
+                value_table[self.id] = 1
+            else:
+                value_table[self.id] = 0
 
     def print(self, indent_level: int):
         indent(indent_level)
@@ -285,7 +324,10 @@ class WriteInstruction(Instruction):
         pass
 
     def execute(self):
-        pass
+        if self.exp_type == NATURAL:
+            print(self.exp.get_value())
+        else:
+            print("true" if self.exp.get_value() else "false")
 
     def print(self, indent_level: int):
         indent(indent_level)
@@ -311,7 +353,10 @@ class IfInstruction(Instruction):
         pass
 
     def execute(self):
-        pass
+        if self.condition.get_value():
+            execute_commands(self.true_branch)
+        else:
+            execute_commands(self.false_branch)
 
     def print(self, indent_level: int):
         indent(indent_level)
@@ -343,7 +388,8 @@ class WhileInstruction(Instruction):
         pass
 
     def execute(self):
-        pass
+        while self.condition.get_value():
+            execute_commands(self.body)
 
     def print(self, indent_level: int):
         indent(indent_level)
@@ -371,11 +417,12 @@ class RepeatInstruction(Instruction):
         pass
 
     def execute(self):
-        pass
+        for i in range(self.count.get_value(), 0, -1):
+            execute_commands(self.body)
 
     def print(self, indent_level: int):
         indent(indent_level)
-        print("repeat ", self.count, " do")
+        print("repeat ", self.count.get_value(), " do")
         print_commands(indent_level + 1, self.body)
 
         indent(indent_level)
@@ -383,15 +430,13 @@ class RepeatInstruction(Instruction):
 
 
 def type_check_commands(commands: List[Instruction]):
-    if not commands:
-        return
-
     for it in commands:
         it.type_check()
 
 
 def execute_commands(commands: List[Instruction]):
-    pass
+    for command in commands:
+        command.execute()
 
 
 def generate_code(commands: List[Instruction]):
@@ -401,8 +446,7 @@ def generate_code(commands: List[Instruction]):
 def print_program(name: str, commands: List[Instruction]):
     print("program ", name)
 
-    for key, value in symbol_table.items():
-        value: Symbol
+    for value in symbol_table.values():
         print(INDENT, "boolean" if value.symbol_type == 0 else "natural", " ", value.name)
 
     print("begin")
@@ -413,10 +457,6 @@ def print_program(name: str, commands: List[Instruction]):
 def error(line: int, text: str):
     print("Line ", line, ": Error: ", text)
     exit(1)
-
-
-def delete_commands(commands: List[Instruction]):
-    pass
 
 
 def print_commands(indent_level: int, commands: List[Instruction]):

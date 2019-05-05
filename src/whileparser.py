@@ -34,6 +34,8 @@ class WhileParser(Parser):
 
         Optimizer().optimalize_const_merge(commands)
         print_program(p.ID, p.commands)
+        print("-"*20)
+        generate_code(commands)
         # print(symbol_table)
         # print(value_table)
         # print(commands)

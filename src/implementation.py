@@ -18,11 +18,11 @@ class Symbol:
 
     def declare(self):
         if self.name in symbol_table:
-            error(self.line, "Re-declared variable: " + self.name)
+            error(self.line, "Re-declared variable: {0}".format(self.name))
         symbol_table[self.name] = self
 
     def get_code(self) -> str:
-        pass
+        return "{0}: resb {1} \t; variable: {2}\n".format(self.label, self.get_size(), self.name)
 
     def get_size(self) -> int:
         if self.symbol_type == BOOLEAN:
@@ -47,10 +47,11 @@ class Expression:
         pass
 
     def print(self):
-        pass
+        print(self.to_string())
 
     def to_string(self) -> str:
         pass
+
 
 class NumberExpression(Expression):
 
@@ -61,16 +62,14 @@ class NumberExpression(Expression):
         return NATURAL
 
     def get_code(self) -> str:
-        pass
+        return "mov eax,{0}\n".format(self.value)
 
     def get_value(self) -> int:
         return self.value
 
-    def print(self):
-        print(self.value)
-
     def to_string(self) -> str:
         return str(self.value)
+
 
 class BooleanExpression(Expression):
 
@@ -81,17 +80,13 @@ class BooleanExpression(Expression):
         return BOOLEAN
 
     def get_code(self) -> str:
-        pass
+        return "mov al,{0}\n".format(1 if self.value else 0)
 
     def get_value(self) -> int:
         return int(self.value)
 
-    def print(self):
-        print("true" if self.value else "false")
-
     def to_string(self) -> str:
         return "true" if self.value else "false"
-
 
 
 class IdExpression(Expression):
@@ -102,19 +97,18 @@ class IdExpression(Expression):
 
     def get_type(self) -> int:
         if self.name not in symbol_table:
-            error(self.line, "Undefined variable: " + self.name)
+            error(self.line, "Undefined variable: {0}".format(self.name))
         return symbol_table[self.name].symbol_type
 
     def get_code(self) -> str:
-        pass
+        if self.name not in symbol_table:
+            error(self.line, "Undefined variable: {0}".format(self.name))
+        return "mov eax,[{0}]\n".format(symbol_table[self.name].label)
 
     def get_value(self) -> int:
         if self.name not in symbol_table:
-            error(self.line, "Variable has not been initialized" + self.name)
+            error(self.line, "Variable has not been initialized {0}".format(self.name))
         return value_table[self.name]
-
-    def print(self):
-        print(self.name)
 
     def to_string(self) -> str:
         return self.name
@@ -134,20 +128,25 @@ class BinopExpression(Expression):
                 error(self.line, "Left and right operands of '=' have different types.")
         else:
             if self.left.get_type() != operand_type(self.op):
-                error(self.line, "Left operand of '" + self.op + "' has unexpected type.")
+                error(self.line, "Left operand of '{0}' has unexpected type.".format(self.op))
             if self.right.get_type() != operand_type(self.op):
-                error(self.line, "Right operand of '" + self.op + "' has unexpected type.")
+                error(self.line, "Right operand of '{0}' has unexpected type.".format(self.op))
         return return_type(self.op)
 
     def get_code(self) -> str:
-        pass
+        s = self.left.get_code()
+        s += "push eax\n"
+        s += self.right.get_code()
+        s += "pop eax\n"
+        s += eq_code(self.left.get_type() if self.op == "=" else operator_code(self.op))
+        return s
 
     def get_value(self) -> int:
         left_value: int = self.left.get_value()
         right_value: int = self.right.get_value()
         if self.op == "+":
             return left_value + right_value
-        elif self.op == "-" :
+        elif self.op == "-":
             return left_value - right_value
         elif self.op == "*":
             return left_value * right_value
@@ -170,13 +169,11 @@ class BinopExpression(Expression):
         elif self.op == "=":
             return left_value == right_value
         else:
-            error(self.line, "Unkonwn operator: " + self.op)
-
-    def print(self):
-        print("(", self.left.to_string(), ") ", self.op, " (", self.right.to_string(), ")")
+            error(self.line, "Unkonwn operator: {0}".format(self.op))
 
     def to_string(self) -> str:
-        return "(" + self.left.to_string() + ") " + self.op + " (" + self.right.to_string() + ")"
+        return "({0}) {1} ({2})".format(self.left.to_string(), self.op, self.right.to_string())
+
 
 class NotExpression(Expression):
 
@@ -191,16 +188,15 @@ class NotExpression(Expression):
         return BOOLEAN
 
     def get_code(self) -> str:
-        pass
+        s = self.operand.get_code()
+        s += "xor al,1\n"
+        return s
 
     def get_value(self) -> int:
         return int(not self.operand.get_value())
 
-    def print(self):
-        print(self.op, " (", self.operand.to_string(), ")")
-
     def to_string(self) -> str:
-        return self.op + " (" + self.operand.to_string() + ")"
+        return "{0} ({1})".format(self.op, self.operand.to_string())
 
 
 class TernaryExpression(Expression):
@@ -220,7 +216,17 @@ class TernaryExpression(Expression):
         return self.true_expression.get_type()
 
     def get_code(self) -> str:
-        pass
+        else_label = next_label()
+        end_label = next_label()
+        s = self.condition.get_code()
+        s += "cmp al,1\n"
+        s += "jne near {0}\n".format(else_label)
+        s += self.true_expression.get_code()
+        s += "jmp {0}\n".format(end_label)
+        s += "{0}:\n".format(else_label)
+        s += self.false_expression.get_code()
+        s += "{0}:\n".format(end_label)
+        return s
 
     def get_value(self) -> int:
         if self.condition.get_value():
@@ -228,13 +234,9 @@ class TernaryExpression(Expression):
         else:
             return self.false_expression.get_value()
 
-    def print(self):
-        print("(", self.condition.to_string(), " ? ", self.true_expression.to_string(), " : ",
-              self.false_expression.to_string(), ")")
-
     def to_string(self) -> str:
-        return "(" + self.condition.to_string() + " ? " + self.true_expression.to_string() + " : " +\
-              self.false_expression.to_string() + ")"
+        return "({0} ? {1} : {2})".format(self.condition.to_string(), self.true_expression.to_string(),
+                                          self.false_expression.to_string())
 
 
 class Instruction:
@@ -267,19 +269,21 @@ class AssignInstruction(Instruction):
 
     def type_check(self):
         if self.left not in symbol_table:
-            error(self.line, "Undefined variable: " + self.left)
+            error(self.line, "Undefined variable: {0}".format(self.left))
         if symbol_table[self.left].symbol_type != self.right.get_type():
             error(self.line, "Left and right hand sides of assignment are of different types.")
 
     def get_code(self) -> str:
-        pass
+        s = self.right.get_code()
+        s += "mov [{0}], {1}\n".format(symbol_table[self.left].label, get_register(symbol_table[self.left].symbol_type))
+        return s
 
     def execute(self):
         value_table[self.left] = self.right.get_value()
 
     def print(self, indent_level: int):
         indent(indent_level)
-        print(self.left, " := ", self.right.to_string())
+        print("{0} := {1}".format(self.left, self.right.to_string()))
 
 
 class ReadInstruction(Instruction):
@@ -290,10 +294,13 @@ class ReadInstruction(Instruction):
 
     def type_check(self):
         if self.id not in symbol_table:
-            error(self.line, "Undefined variable: " + self.id)
+            error(self.line, "Undefined variable: {0}".format(self.id))
 
     def get_code(self) -> str:
-        pass
+        t = symbol_table[self.id].symbol_type
+        s = "call read_{0}\n".format(get_type_name(t))
+        s += "mov [{0}],{1}\n".format(symbol_table[self.id].label, get_type_name(t))
+        return s
 
     def execute(self):
         input_line = input()
@@ -307,7 +314,7 @@ class ReadInstruction(Instruction):
 
     def print(self, indent_level: int):
         indent(indent_level)
-        print("read(", self.id, ")")
+        print("read({0})".format(self.id))
 
 
 class WriteInstruction(Instruction):
@@ -321,7 +328,12 @@ class WriteInstruction(Instruction):
         self.exp_type = self.exp.get_type()
 
     def get_code(self) -> str:
-        pass
+        s = self.exp.get_code()
+        if self.exp_type == BOOLEAN:
+            s += "and eax,1\n"
+        s += "push eax\n"
+        s += "call write_{0}\n".format(get_type_name(self.exp_type))
+        return s
 
     def execute(self):
         if self.exp_type == NATURAL:
@@ -331,7 +343,7 @@ class WriteInstruction(Instruction):
 
     def print(self, indent_level: int):
         indent(indent_level)
-        print("write(", self.exp.to_string(), ")")
+        print("write({0})".format(self.exp.to_string()))
 
 
 class IfInstruction(Instruction):
@@ -350,7 +362,17 @@ class IfInstruction(Instruction):
         type_check_commands(self.false_branch)
 
     def get_code(self) -> str:
-        pass
+        else_label = next_label()
+        end_label = next_label()
+        s = self.condition.get_code()
+        s += "cmp al,1\n"
+        s += "jne near {0}\n".format(else_label)
+        s += generate_code_of_commands(self.true_branch)
+        s += "jmp {0}\n".format(end_label)
+        s += "{0}:\n".format(else_label)
+        s += generate_code_of_commands(self.false_branch)
+        s += "{0}:\n".format(end_label)
+        return s
 
     def execute(self):
         if self.condition.get_value():
@@ -360,7 +382,7 @@ class IfInstruction(Instruction):
 
     def print(self, indent_level: int):
         indent(indent_level)
-        print("if ", self.condition.to_string(), " then")
+        print("if {0} then".format(self.condition.to_string()))
         print_commands(indent_level + 1, self.true_branch)
 
         if self.false_branch:
@@ -385,7 +407,16 @@ class WhileInstruction(Instruction):
         type_check_commands(self.body)
 
     def get_code(self) -> str:
-        pass
+        begin_label = next_label()
+        end_label = next_label()
+        s = "{0}:\n".format(begin_label)
+        s += self.condition.get_code()
+        s += "cmp al,1\n"
+        s += "jne near {0}\n".format(end_label)
+        s += generate_code_of_commands(self.body)
+        s += "jmp {0}\n".format(begin_label)
+        s += "{0}:\n".format(end_label)
+        return s
 
     def execute(self):
         while self.condition.get_value():
@@ -393,7 +424,7 @@ class WhileInstruction(Instruction):
 
     def print(self, indent_level: int):
         indent(indent_level)
-        print("while ", self.condition.to_string(), " do")
+        print("while {0} do".format(self.condition.to_string()))
         print_commands(indent_level + 1, self.body)
 
         indent(indent_level)
@@ -414,7 +445,15 @@ class RepeatInstruction(Instruction):
         type_check_commands(self.body)
 
     def get_code(self) -> str:
-        pass
+        begin_label = next_label()
+        s = self.count.get_code()
+        s += "mov ecx,eax\n"
+        s += "{0}:\n".format(begin_label)
+        s += "push ecx\n"
+        s += generate_code_of_commands(self.body)
+        s += "pop ecx\n"
+        s += "loop {0}\n".format(begin_label)
+        return s
 
     def execute(self):
         for i in range(self.count.get_value(), 0, -1):
@@ -422,7 +461,7 @@ class RepeatInstruction(Instruction):
 
     def print(self, indent_level: int):
         indent(indent_level)
-        print("repeat ", self.count.get_value(), " do")
+        print("repeat {0} do".format(self.count.get_value()))
         print_commands(indent_level + 1, self.body)
 
         indent(indent_level)
@@ -439,15 +478,11 @@ def execute_commands(commands: List[Instruction]):
         command.execute()
 
 
-def generate_code(commands: List[Instruction]):
-    pass
-
-
 def print_program(name: str, commands: List[Instruction]):
-    print("program ", name)
+    print("program {0}".format(name))
 
     for value in symbol_table.values():
-        print(INDENT, "boolean" if value.symbol_type == 0 else "natural", " ", value.name)
+        print("{0}{1} {2}".format(INDENT, "boolean" if value.symbol_type == 0 else "natural", value.name))
 
     print("begin")
     print_commands(1, commands)
@@ -455,7 +490,7 @@ def print_program(name: str, commands: List[Instruction]):
 
 
 def error(line: int, text: str):
-    print("Line ", line, ": Error: ", text)
+    print("Line {1}: Error: {1}".format(line, text))
     exit(1)
 
 
@@ -469,27 +504,107 @@ def indent(indent_level: int):
 
 
 def next_label() -> str:
-    pass
+    global ID
+    ID += 1
+    return "label{0}".format(ID)
 
 
-def generate_code_of_commands(out: str, commands: List[Instruction]):
-    pass
+def generate_code(commands: List[Instruction]):
+    s = "global main\n"
+    s += "extern write_natural\n"
+    s += "extern read_natural\n"
+    s += "extern write_boolean\n"
+    s += "extern read_boolean\n"
+    s += "\n"
+    s += "section .bss\n"
+    for symbol in symbol_table.values():
+        s += symbol.get_code()
+    s += "\n"
+    s += "section .text\n"
+    s += "main:\n"
+    s += generate_code_of_commands(commands)
+    s += "xor eax,eax\n"
+    s += "ret\n"
+    print(s)
+
+
+def generate_code_of_commands(commands: List[Instruction]) -> str:
+    s = ""
+    for command in commands:
+        s += command.get_code()
+    return s
 
 
 def get_type_name(t: int) -> str:
-    pass
+    if t == BOOLEAN:
+        return "boolean"
+    else:
+        return "natural"
 
 
 def get_register(t: int) -> str:
-    pass
+    if t == BOOLEAN:
+        return "al"
+    else:
+        return "eax"
 
 
 def eq_code(t: int) -> str:
-    pass
+    if t == NATURAL:
+        s = "cmp eax, ecx\n"
+    else:
+        s = "cmp al, cl\n"
+    s += "mov al,0\n"
+    s += "mov cx,1\n"
+    s += "cmove ax, cx\n"
+    return s
 
 
 def operator_code(op: str) -> str:
-    pass
+    s = ""
+    if op == "+":
+        s += "add eax,ecx\n"
+    elif op == "-":
+        s += "sub eax,ecx\n"
+    elif op == "*":
+        s += "xor edx,edx\n"
+        s += "mul ecx\n"
+    elif op == "/":
+        s += "xor edx,edx\n"
+        s += "div ecx\n"
+    elif op == "%":
+        s += "xor edx,edx\n"
+        s += "div ecx\n"
+        s += "mov eax,edx\n"
+    elif op == "<":
+        s += "cmp eax,ecx\n"
+        s += "mov al,0\n"
+        s += "mov cx,1\n"
+        s += "cmovb ax,cx\n"
+    elif op == "<=":
+        s += "cmp eax,ecx\n"
+        s += "mov al,0\n"
+        s += "mov cx,1\n"
+        s += "cmovbe ax,cx\n"
+    elif op == ">":
+        s += "cmp eax,ecx\n"
+        s += "mov al,0\n"
+        s += "mov cx,1\n"
+        s += "cmova ax,cx\n"
+    elif op == ">=":
+        s += "cmp eax,ecx\n"
+        s += "mov al,0\n"
+        s += "mov cx,1\n"
+        s += "cmovae ax,cx\n"
+    elif op == "and":
+        s += "cmp al,1\n"
+        s += "cmove ax,cx\n"
+    elif op == "or":
+        s += "cmp al,0\n"
+        s += "cmove ax,cx\n"
+    else:
+        error(-1, "Bug: Unsupported binary operator: {0}".format(op))
+    return s
 
 
 def operand_type(op: str) -> int:
@@ -504,4 +619,3 @@ def return_type(op: str) -> int:
         return NATURAL
     else:
         return BOOLEAN
-

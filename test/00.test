@@ -4,5 +4,6 @@ program divisor
     boolean k
     natural o
 begin
-    i := 1 + i * 2 * 2 + 2
+    i := 1 + i * 2 * 2 + 2 + j + 2 * 2 + o
+    i := i + 1 + j + 2
 end

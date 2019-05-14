@@ -237,6 +237,7 @@ class Optimizer:
                     return self.opt_expresstion(root, exp.false_expression)
             else:
                 return OptStruct(False, -1, -1)
+        return OptStruct(False, -1, -1)
 
     def replace_expression(self, instrcution: Instruction, old_expression: Expression, new_expression: Expression):
         if isinstance(instrcution, AssignInstruction):

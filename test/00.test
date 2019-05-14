@@ -4,26 +4,5 @@ program divisor
     boolean k
     natural o
 begin
-    read(k)
-    j := 1
-    i := 2 + 1 + o
-
-    k := 1 = 2 = true
-
-    k := true and not false
-
-    if true and false then
-        o := (k? 11 : 0)
-    else
-        write(1 + 2)
-    endif
-
-    while true do
-        write(1 + 2 + 3)
-    done
-
-    repeat 5 + 2 do
-        o := 1 + j
-    done
-
+    i := 1 + i * 2 * 2 + 2
 end

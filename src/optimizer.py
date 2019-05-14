@@ -176,7 +176,7 @@ class Optimizer:
                             new_expression = BinopExpression(exp.line, exp.op, not_optimalizable_expression.right, optimalized_expression)
                             # exp = new_expression
                             self.replace_expression(root, exp, new_expression)
-                            return self.opt_expresstion(root, exp)
+                            return self.opt_expresstion(root, new_expression)
 
                         elif not_optimalizable_right_expression.optimizable:
                             'ha jobb oldal optimalizalhato akkor a bal a gond'
@@ -185,7 +185,7 @@ class Optimizer:
                             new_expression = BinopExpression(exp.line, exp.op, not_optimalizable_expression.left, optimalized_expression)
                             # exp = new_expression
                             self.replace_expression(root, exp, new_expression)
-                            return self.opt_expresstion(root, exp)
+                            return self.opt_expresstion(root, new_expression)
                         else:
                             return OptStruct(False, -1, -1)
                 else:
@@ -211,7 +211,7 @@ class Optimizer:
                             new_expression = BinopExpression(exp.line, exp.op, new_not_optimalizable_expression, not_optimalizable_expression.left)
                             # exp = new_expression
                             self.replace_expression(root, exp, new_expression)
-                            return self.opt_expresstion(root, exp)
+                            return self.opt_expresstion(root, new_expression)
                         elif not_optimalizable_right_expression.optimizable:
                             'jobb oldalon van egy optimalizalhato'
                             'csoportositjuk a ket nem optimalizalhatot'
@@ -220,7 +220,7 @@ class Optimizer:
                                                              not_optimalizable_expression.right)
                             #exp = new_expression
                             self.replace_expression(root, exp, new_expression)
-                            return self.opt_expresstion(root, exp)
+                            return self.opt_expresstion(root, new_expression)
                         else:
                             return OptStruct(False, -1, -1)
 

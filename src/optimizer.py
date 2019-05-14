@@ -151,8 +151,33 @@ class Optimizer:
                 else:
                     value = left_value == right_value
                     type = BOOLEAN
-
                 return OptStruct(True, value, type)
+            elif opt_struct1.optimizable and not opt_struct2.optimizable:
+                if isinstance(exp.right, BinopExpression):
+                    right: BinopExpression = exp.right
+                    if right.op == exp.op and exp.op in ["+", "*", "=", "and", "or"]:
+                        t_opt_struct_left = self.opt_expresstion(right.left)
+                        t_opt_struct_right = self.opt_expresstion(right.right)
+                        if t_opt_struct_left.optimizable:
+                            new_opt_exp = BinopExpression(exp.line, exp.op, exp.left, right.left)
+                            new_exp = BinopExpression(exp.line, exp.op, new_opt_exp, right.right)
+                            exp = new_exp
+                            return self.opt_expresstion(exp)
+                        elif t_opt_struct_right.optimizable:
+                            new_opt_exp = BinopExpression(exp.line, exp.op, exp.left, right.right)
+                            new_exp = BinopExpression(exp.line, exp.op, new_opt_exp, right.left)
+                            exp = new_exp
+                            return self.opt_expresstion(exp)
+                        else:
+                            return OptStruct(False, -1, -1)
+                else:
+                    return OptStruct(False, -1, -1)
+
+            elif not opt_struct1.optimizable and opt_struct2.optimizable:
+                if isinstance(exp.left, BinopExpression):
+                    return OptStruct(False, -1, -1)
+                else:
+                    return OptStruct(False, -1, -1)
             else:
                 return OptStruct(False, -1, -1)
 

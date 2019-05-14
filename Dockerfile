@@ -2,7 +2,7 @@ FROM i386/debian
 
 WORKDIR /app
 
-RUN apt update && apt install gcc make flex bison nasm git g++ -y
+RUN apt update && apt install gcc make flex bison nasm git g++ python3 -y
 
 # Interactive mode
 CMD bash

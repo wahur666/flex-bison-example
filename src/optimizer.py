@@ -79,7 +79,7 @@ class Optimizer:
             elif isinstance(command, RepeatInstruction):
                 opt_struct = self.opt_expresstion(command, command.count)
                 if opt_struct.optimizable:
-                    command.condition = self.simpler_node(opt_struct)
+                    command.count = self.simpler_node(opt_struct)
                 self.optimalize_const_merge(command.body)
 
         #print_commands(0, commands)
@@ -189,10 +189,54 @@ class Optimizer:
                         else:
                             return OptStruct(False, -1, -1)
                 else:
+                    'semleges elem vizsgalat, jobb oldal optimalizalhato'
+                    if exp.op == "+":
+                        if self.opt_expresstion(root, exp.right).value == 0:
+                            self.replace_expression(root, exp, exp.left)
+                    elif exp.op == "-":
+                        if self.opt_expresstion(root, exp.right).value == 0:
+                            self.replace_expression(root, exp, exp.left)
+                    elif exp.op == "*":
+                        if self.opt_expresstion(root, exp.right).value == 1:
+                            self.replace_expression(root, exp, exp.left)
+                    elif exp.op == "/":
+                        if self.opt_expresstion(root, exp.right).value == 1:
+                            self.replace_expression(root, exp, exp.left)
+                    elif exp.op == "and":
+                        if self.opt_expresstion(root, exp.right).value == 1:
+                            self.replace_expression(root, exp, exp.left)
+                        else:
+                            self.replace_expression(root, exp, BooleanExpression(False))
+                            return OptStruct(True, False, BOOLEAN)
+                    elif exp.op == "or":
+                        if self.opt_expresstion(root, exp.right).value == 1:
+                            self.replace_expression(root, exp, BooleanExpression(True))
+                            return OptStruct(True, True, BOOLEAN)
+                        else:
+                            self.replace_expression(root, exp, exp.left)
+
                     return OptStruct(False, -1, -1)
 
             elif main_expression_left.optimizable and not main_expression_right.optimizable:
-                'ez az eset nem letezik, mivel minden perator balra köt'
+                'semleges elem vizsgalat, bal oldal optimalizalhato'
+                if exp.op == "+":
+                    if self.opt_expresstion(root, exp.left).value == 0:
+                        self.replace_expression(root, exp, exp.right)
+                elif exp.op == "*":
+                    if self.opt_expresstion(root, exp.left).value == 1:
+                        self.replace_expression(root, exp, exp.right)
+                elif exp.op == "and":
+                    if self.opt_expresstion(root, exp.left).value == 1:
+                        self.replace_expression(root, exp, exp.right)
+                    else:
+                        self.replace_expression(root, exp, BooleanExpression(False))
+                        return OptStruct(True, False, BOOLEAN)
+                elif exp.op == "or":
+                    if self.opt_expresstion(root, exp.left).value == 1:
+                        self.replace_expression(root, exp, BooleanExpression(True))
+                        return OptStruct(True, True, BOOLEAN)
+                    else:
+                        self.replace_expression(root, exp, exp.right)
                 return OptStruct(False, -1, -1)
             else:
                 'ez csak akkor lehet ha egyszerre tobb nem kotott valtozo van'
@@ -208,6 +252,24 @@ class Optimizer:
                             'bal oldalon van egy optimalizalhato'
                             'csoportositjuk a ket nem optimalizalhatot'
                             new_not_optimalizable_expression = BinopExpression(exp.line, exp.op, not_optimalizable_expression.right, exp.right)
+
+                            'azaonos valtozo egysegesites'
+                            if new_not_optimalizable_expression.op == "-":
+                                if new_not_optimalizable_expression.left == new_not_optimalizable_expression.right:
+                                    new_not_optimalizable_expression = NumberExpression("0")
+                            elif new_not_optimalizable_expression.op == "/":
+                                if new_not_optimalizable_expression.left == new_not_optimalizable_expression.right:
+                                    new_not_optimalizable_expression = NumberExpression("1")
+                            elif new_not_optimalizable_expression.op == "%":
+                                if new_not_optimalizable_expression.left == new_not_optimalizable_expression.right:
+                                    new_not_optimalizable_expression = NumberExpression("0")
+                            elif new_not_optimalizable_expression.op == "and":
+                                if new_not_optimalizable_expression.left == new_not_optimalizable_expression.right:
+                                    new_not_optimalizable_expression = new_not_optimalizable_expression.left
+                            elif new_not_optimalizable_expression.op == "or":
+                                if new_not_optimalizable_expression.left == new_not_optimalizable_expression.right:
+                                    new_not_optimalizable_expression = new_not_optimalizable_expression.left
+
                             new_expression = BinopExpression(exp.line, exp.op, new_not_optimalizable_expression, not_optimalizable_expression.left)
                             # exp = new_expression
                             self.replace_expression(root, exp, new_expression)
@@ -216,6 +278,24 @@ class Optimizer:
                             'jobb oldalon van egy optimalizalhato'
                             'csoportositjuk a ket nem optimalizalhatot'
                             new_not_optimalizable_expression = BinopExpression(exp.line, exp.op, not_optimalizable_expression.left, exp.right)
+
+                            'azaonos valtozo egysegesites'
+                            if new_not_optimalizable_expression.op == "-":
+                                if new_not_optimalizable_expression.left == new_not_optimalizable_expression.right:
+                                    new_not_optimalizable_expression = NumberExpression("0")
+                            elif new_not_optimalizable_expression.op == "/":
+                                if new_not_optimalizable_expression.left == new_not_optimalizable_expression.right:
+                                    new_not_optimalizable_expression = NumberExpression("1")
+                            elif new_not_optimalizable_expression.op == "%":
+                                if new_not_optimalizable_expression.left == new_not_optimalizable_expression.right:
+                                    new_not_optimalizable_expression = NumberExpression("0")
+                            elif new_not_optimalizable_expression.op == "and":
+                                if new_not_optimalizable_expression.left == new_not_optimalizable_expression.right:
+                                    new_not_optimalizable_expression = new_not_optimalizable_expression.left
+                            elif new_not_optimalizable_expression.op == "or":
+                                if new_not_optimalizable_expression.left == new_not_optimalizable_expression.right:
+                                    new_not_optimalizable_expression = new_not_optimalizable_expression.left
+
                             new_expression = BinopExpression(exp.line, exp.op, new_not_optimalizable_expression,
                                                              not_optimalizable_expression.right)
                             #exp = new_expression
@@ -223,7 +303,23 @@ class Optimizer:
                             return self.opt_expresstion(root, new_expression)
                         else:
                             return OptStruct(False, -1, -1)
-
+                else:
+                    'azaonos valtozo egysegesites'
+                    if exp.op == "-":
+                        if isinstance(exp.left, IdExpression) and isinstance(exp.right, IdExpression) and exp.left.name == exp.right.name:
+                            self.replace_expression(root, exp, NumberExpression("0"))
+                    elif exp.op == "/":
+                        if isinstance(exp.left, IdExpression) and isinstance(exp.right, IdExpression) and exp.left.name == exp.right.name:
+                            self.replace_expression(root, exp, NumberExpression("1"))
+                    elif exp.op == "%":
+                        if isinstance(exp.left, IdExpression) and isinstance(exp.right, IdExpression) and exp.left.name == exp.right.name:
+                            self.replace_expression(root, exp, NumberExpression("0"))
+                    elif exp.op == "and":
+                        if isinstance(exp.left, IdExpression) and isinstance(exp.right, IdExpression) and exp.left.name == exp.right.name:
+                            self.replace_expression(root, exp, exp.left)
+                    elif exp.op == "or":
+                        if isinstance(exp.left, IdExpression) and isinstance(exp.right, IdExpression) and exp.left.name == exp.right.name:
+                            self.replace_expression(root, exp, exp.left)
                 return OptStruct(False, -1, -1)
 
         elif isinstance(exp, TernaryExpression):

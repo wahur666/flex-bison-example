@@ -6,4 +6,6 @@ program divisor
 begin
     i := 1 + i * 2 * 2 + 2 + j + 2 * 2 + o
     i := i + 1 + j + 2
+    i := i + j + 1 + 2 + i + i
+    k := true and true and k and k or false or k and k
 end
